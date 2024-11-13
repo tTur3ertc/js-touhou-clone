@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>torrou</title>
+    <style>
+        @font-face { 
+            font-family: fudido; 
+			src: url(fonts/fonteFudida.ttf); 
+        } 
+        @keyframes spinEnemyBullet {
+            0%{transform: rotateZ(0deg);}
+            100%{transform: rotateZ(359deg);}
+        }
+        @keyframes playerMoving {
+            0%{transform: translateY(5px)}
+            50%{transform: translateY(-5px)}
+            100%{transform: translateY(5px)}
+        }
+        @keyframes playerHit{
+            0%{transform: translateX(15px)}
+            20%{transform: translateX(-15px)}
+            40%{transform: translateX(5px)}
+            60%{transform: translateX(-5px)}
+            80%{transform: translateX(1px)}
+            100%{transform: translateX(0)}
+        }
+        @keyframes bouncyEnemies {
+            0%{transform: rotateZ(5deg)}
+            50%{transform: rotateZ(-5deg)}
+            100%{transform: rotateZ(5deg)}
+        }
+        @keyframes fade {
+            0%{opacity: 1; transform: translateY(0);}
+            100%{opacity: 0; transform: translateY(-200px)}
+        }
+        @keyframes hitLives {
+            0%{color: red;}
+            100%{color: white;}
+        }
+        @keyframes oneup {
+            0%{color: rgb(0, 255, 13);}
+            100%{color: white;}
+        }
+        @keyframes enemyKill {
+            0%{transform: scale(100%); opacity: 1;}
+            100%{transform: scale(400%) translateY(-40px); opacity: 0; filter: brightness(0)}
+        }
+        @keyframes bulletspawn {
+            0%{filter: invert(1);}
+            100%{filter: invert(0);}
+        }
+        @keyframes powerBorder {
+            0%{border: 10px rgb(245, 196, 0) solid; background: rgb(45, 37, 0);}
+            100%{border: 0 rgb(255, 255, 255) solid; background: black; }
+        }
+        @keyframes gameOver{
+            0%{opacity: 0}
+            100%{opacity: 1}
+        }   
+        @keyframes gameOverTextAnimation {
+            0%{letter-spacing: 5px; transform: translateY(-2px);}
+            50%{letter-spacing: -5px; transform: translateY(2px)}
+            100%{letter-spacing: 5px; transform: translateY(-2px)}
+        }
+        @keyframes special {
+            0%{opacity: 1;}
+            100%{opacity: 0;}
+        }
+        .player-hit{
+            animation: playerHit 0.4s linear !important;
+        }
+        .hit{
+            animation: hitLives 0.5s linear !important;
+        }
+        .yippee{
+            animation: oneup 0.5s linear !important;
+        }
+        .enemy-kill{
+            animation: enemyKill 0.5s linear !important;
+        }
+        .fade{
+            animation: fade 1s linear !important;
+        }
+        .fade-faster{
+            animation: fade 3s linear !important;
+        }
+        .bullet-spawn{
+            animation: bulletspawn 0.5s linear !important;
+        }
+        .power-border{
+            animation: powerBorder 1s linear !important;
+        }
+        *{
+            font-family: fudido; 
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+            color: white;
+            user-select: none;
+        }
+        body{
+            display: flex;
+        }
+        span{
+            font-weight: lighter;
+        }
+        #screen{
+            border: solid black 1px;
+            background: url(img/bg.png);
+            background-size: 100%;
+        }
+        #score-stuff{
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            background: rgb(13, 0, 23);
+            gap: 10px;
+            z-index: 999;
+        }
+        h2{
+            z-index: 9900;
+        }
+        #score-stuff h1{
+            background: black;
+            padding: 40px 10px;
+        }
+        .oneup{
+            position: absolute;
+            width: 45px;
+            height: 45px;
+            animation: spinEnemyBullet infinite 4s linear;
+        }
+        #player{
+            animation: playerMoving 1s infinite;
+            position: absolute;
+            width: 50px;
+            height: 80px;
+            z-index: 3;
+        }
+        #ghost{
+            animation: fade 3s;
+            opacity: 0;
+            position: absolute;
+            width: 50px;
+            height: 80px;
+        }
+        .playerBullet{
+            position: absolute;
+            width: 20px;
+            height: 40px;
+            background-image: url(img/pBullet.gif);
+            background-position: center;
+            background-size: cover;
+        }
+        .enemyBullet{
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            z-index: 2;
+            animation: spinEnemyBullet infinite 1s linear;
+        }
+        .enemyBullet img{
+            width: 100%;
+        }
+        .enemy{
+            background-image: url(img/enemy.png);
+        }
+        .bouncy{
+            background-image: url(img/enemyBouncy.gif) !important;
+            animation: bouncyEnemies 1s infinite;
+        }
+        .enemy, .bouncy{
+            background-position: center;
+            background-size: cover;
+            position: absolute;
+            width: 50px;
+            height: 80px;
+        }
+        #power{
+            color: rgb(249, 255, 135)
+        }
+        #lives{
+            letter-spacing: 7px;
+        }
+        #notif{
+            display: flex;
+            justify-content: flex-end;
+            align-items: start;
+            flex-direction: column;
+            min-height: 100vh;
+            position: absolute; 
+        }
+        #popup-screen{
+            gap: 20px;
+            animation: gameOver 2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 2983728738469;
+            position: absolute;
+            backdrop-filter: blur(10px);
+            background-color: rgba(0, 0, 0, 0.373);
+        }
+        #special{
+            animation: special 1s;
+            position: absolute;
+            height: 100vh;
+            background-color: white;
+            z-index: 99;
+        }
+        #button{
+            animation: playerMoving 1s infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 186px;
+            height: 72px;
+            background: no-repeat center url(img/button.png);
+            background-size: cover;
+            transition: 0.7s;
+            cursor: pointer;
+        }
+        #button:hover{
+            background: no-repeat center url(img/buttonHover.png);
+            background-size: cover;
+            color: black !important;
+            transition: 0.2s;
+            font-weight: bolder;
+        }
+        #game-over-text{
+            animation: gameOverTextAnimation 5s infinite;
+        }
+        #arrows{display: none;}
+        @media (max-width: 900px) {
+            html{height: 100vh; width: 100vw;}
+            body{
+                height: 100vh;
+                flex-direction: column-reverse;
+            }
+            #screen, #popup-screen{
+                width: 100vw !important;
+                height: 100vh !important;
+            }
+            #score-stuff{
+                padding: 0;
+                position: absolute;
+                top: 20px;
+                width: 100vw !important;
+                height: fit-content !important;
+                background: linear-gradient(rgba(0, 0, 0, 0.571), rgba(0,0,0,0)) !important;
+                gap: 0 !important;
+            }
+            #special{
+                width: 100vw !important;
+                height: 100vh !important;
+            }
+            h1{
+                font-size: 15px;
+                padding: 1px !important;
+                gap: 5px !important;
+                background: transparent !important;
+            }
+            h3{
+                background: rgba(0, 0, 0, 0.571);
+            }
+            h6{
+                display: none;
+            }
+            #arrows{
+                z-index: 99;
+                position: absolute;
+                bottom:0;
+                right: 0;
+                display: grid;
+                grid-template-columns: repeat(3, 33vw);
+                grid-template-rows: repeat(2, 1fr);
+                opacity: 0.3;
+            }
+            [id^="Arrow"] {
+                width: 120px;
+                height: 60px;
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: contain;
+                background-image: url(img/button.png);
+                font-size: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="arrows">
+        <div></div>
+        <div id="ArrowUp">^</div>
+        <div></div>
+        <div id="ArrowLeft"><</div>
+        <div id="ArrowDown">v</div>
+        <div id="ArrowRight">></div>
+    </div>
+    <div id="screen">
+        <h3>shots: <span id="shots"></span></h3>
+        <h6>bullets on screen: <span id="bullets-on-screen"></span></h6>
+        <h6>enemies on screen: <span id="enemies-on-screen"></span></h6>
+        <img src="img/player.png" id="player"></img>
+        <div id="notif">
+        </div>
+    </div>
+    <div id="score-stuff">
+        <h1>score:<span id="score"></span> </h1>
+        <h1>top score:<span id="top-score"></span></h1>
+        <h1>lives:<span id="lives"></span> </h1>
+        <h1>kills:<span id="kills"></span> </h1>
+        <h1>power:<span id="power"></span></h1>
+    </div>
+    <script>
+        const screen = document.getElementById('screen')
+        screen.style.width = window.innerWidth/2+'px'
+        screen.style.height = window.innerHeight+'px'
+
+        const score = document.getElementById('score-stuff')
+        score.style.width = window.innerWidth/2+'px'
+        score.style.height = window.innerHeight+'px'
+
+        const notif = document.getElementById('notif')
+        notif.style.bottom = '-100px'
+
+        const arrows = Array.from(document.querySelectorAll('[id^="Arrow"]'))
+        setInterval(()=>{
+            arrows.forEach(arrow=>{
+                arrow.addEventListener('touchstart',()=>{
+                    key[arrow.id]=true
+                })
+                arrow.addEventListener('touchend',()=>{
+                    key[arrow.id]=false
+                })
+            })
+        },1)
+        screen.addEventListener('touchstart',()=>{
+            usePower()
+        })
+
+        const text = 'ur dead :('
+        var gameOverText 
+        var timeoutText = 0
+        function gameOver(){
+            document.body.innerHTML +=
+            `<div id="popup-screen">
+                <h1 id="game-over-text"></h1>
+                <div id="button" onclick="window.location.reload()">again</div>
+            </div>`
+            const popupScreen = document.getElementById('popup-screen')
+            popupScreen.style.width = screen.style.width
+            popupScreen.style.height = screen.style.height
+            for (let i = 0; i < text.length; i++) {
+                timeoutText+=200
+                setTimeout(()=>{
+                    document.getElementById('game-over-text').innerHTML+=text[i]
+                },timeoutText)
+            }
+        }
+
+        function showNotif(what, color, size){
+            var h2 = document.createElement('h2')
+            notif.appendChild(h2)
+            h2.innerText = what
+            h2.style.color = color
+            h2.style.fontSize = size
+            h2.classList.add('fade-faster')
+            h2.addEventListener('animationend',()=>{
+                h2.classList.remove('fade-faster')
+                h2.remove()
+            })
+        }
+        function updateValue(where, what){
+            where.innerHTML = what
+        }
+        function updateStatus(){
+            if(player.hp > 0)
+            {
+                document.getElementById('lives').textContent = ''
+            }
+            else
+            {   
+                document.getElementById('lives').innerHTML = '<span style="color: tomato">X~X</span>'
+            }
+            updateValue(document.getElementById('kills'), player.kills)
+            for (let l = 1; l <= player.hp; l++) {
+                document.getElementById('lives').textContent += '#'
+            }
+            if(player.score > player.topScore)
+            {
+                localStorage.setItem('topScore', player.score)
+            }
+            updateValue(document.getElementById('score'), player.score)
+            updateValue(document.getElementById('top-score'), player.topScore)
+            updateValue(document.getElementById('shots'), player.shots)
+            updateValue(document.getElementById('power'), power)
+            updateValue(document.getElementById('bullets-on-screen'), enemyBullets.length)
+            updateValue(document.getElementById('enemies-on-screen'), enemies.length)
+        }
+        const key = []
+        addEventListener('keydown',e=>{
+            key[e.code] = true
+        })
+        addEventListener('keyup',e=>{
+            key[e.code] = false
+            changeSprite(player.element, 'img/player.png')
+        })
+        var player = {
+            x: 300,
+            y: 40,
+            bullets: [],
+            speed: 5,
+            hp: 7,
+            damage: 2,
+            kills: 0,  
+            dead: false,
+            shots: 0,
+            power: 0,
+            score: 0,
+            topScore: localStorage.getItem('topScore'), 
+            element: document.getElementById('player')
+        } 
+        var enemies, bouncyEnemies, currentEnemy, bgOffset
+        function moveBG(){
+            if(bgOffset==null) bgOffset = 0
+            else bgOffset++
+            screen.style.backgroundPositionY = bgOffset+'px'
+        }
+        function changeSprite(element, source){
+            if(element!= null)
+            {
+                element.src = source
+            }
+        }
+        var bulletimg
+        function spawnEnemyBullet(enemy){
+            b = document.createElement('div')
+            b.setAttribute('class', 'enemyBullet')
+            bulletimg = document.createElement('img')
+            bulletimg.src = 'img/bullet.png'
+            bulletimg.classList.add('bullet-spawn')
+            bulletimg.addEventListener('animationend', ()=>{
+                bulletimg.classList.remove('bullet-spawn')
+            })
+            screen.appendChild(b)
+            b.appendChild(bulletimg)
+
+            b.style.top = enemy.element.getBoundingClientRect().y+30+'px'
+            b.style.left = enemy.element.getBoundingClientRect().x+17+'px'
+        }
+        function updateEnemies(){
+            enemies = Array.from(document.querySelectorAll('.enemy'))
+            bouncyEnemies = Array.from(document.querySelectorAll('.bouncy'))
+            enemies.forEach(enemy=>{
+                currentEnemy = enemies.indexOf(enemy)
+                enemies[currentEnemy] = {
+                    element: enemy,
+                    speed: 3,
+                    qtBullets: 10
+                }
+            })  
+        }
+        updateEnemies()
+        var oneups = []
+        function update1ups(){
+            oneups = Array.from(document.getElementsByClassName('oneup'))
+        }
+        function spawn1up(){
+            e = document.createElement('img')
+            e.setAttribute('class', 'oneup')
+            e.src = 'img/1up.png'
+            screen.appendChild(e)
+            e.style.left = randomNumber(0, 665)+'px'
+            e.style.top = randomNumber(0, window.innerHeight)+'px'
+        }
+        function take1up(){
+            if(oneups.length!=0)
+            {
+                if(!player.dead)
+                {
+                    oneups.forEach(coisinha=>{
+                    if(checkCollision(coisinha, player.element))
+                    {
+                        player.hp = 7
+                        document.getElementById('lives').classList.add('yippee')
+                        document.getElementById('lives').addEventListener('animationend',()=>{
+                            document.getElementById('lives').classList.remove('yippee')
+                        })
+                        coisinha.remove()
+                        for (let n = 0; n < 300; n++) {
+                            player.score++
+                            increasePower()
+                        }
+                        showNotif('+300!', 'green', '70px')
+                    }
+                    })
+                }
+            }
+        }
+        var e
+        var spawnPosition = {x: 0, offset: 100}
+        function spawnEnemy(){
+            if(spawnPosition.x > window.innerWidth/2) 
+            spawnPosition.x = 0
+            else spawnPosition.x+=spawnPosition.offset
+            if(player.kills < 300)
+            {
+                if(enemies.length < 4)
+                {
+                    e = document.createElement('div')
+                    e.setAttribute('class', 'enemy')
+                    e.setAttribute('id', 50)
+                    e.setAttribute('y', 0)
+                    screen.appendChild(e)
+
+                    e.style.left = spawnPosition.x +'px'
+                }
+                console.log(spawnPosition.x +' '+ parseFloat(screen.style.width))
+                updateEnemies()
+            }
+        }
+        var randomDirection = [-3, 3]
+        function moveBouncyEnemies(){
+            bouncyEnemies.forEach(bouncyboi=>{
+                bouncyboi.x
+                bouncyboi.y
+                bouncyboi.xSpeed
+                bouncyboi.ySpeed
+
+                if(bouncyboi.xSpeed==null) bouncyboi.xSpeed = randomDirection[randomNumber(0,1)]
+                if(bouncyboi.ySpeed==null) bouncyboi.ySpeed = randomDirection[randomNumber(0,1)]
+
+                if(bouncyboi.x < 0) bouncyboi.xSpeed = 3
+                if(bouncyboi.x > screen.getBoundingClientRect().width - bouncyboi.getBoundingClientRect().width) bouncyboi.xSpeed = -3
+                
+                if(bouncyboi.y < 0) bouncyboi.ySpeed = 3
+                if(bouncyboi.y > screen.getBoundingClientRect().height - bouncyboi.getBoundingClientRect().height) bouncyboi.ySpeed = -3
+
+                collisionPlayerEnemy(bouncyboi)
+
+                if(bouncyboi.x==null)bouncyboi.x=bouncyboi.getBoundingClientRect().x
+                else bouncyboi.x+=1*bouncyboi.xSpeed
+                if(bouncyboi.y==null)bouncyboi.y=bouncyboi.getBoundingClientRect().y
+                else bouncyboi.y+=1*bouncyboi.ySpeed
+
+                bouncyboi.style.left = bouncyboi.x+'px' 
+                bouncyboi.style.top = bouncyboi.y+'px' 
+            })
+        }
+        var yAtt = []
+        var stopPoint = 300
+        function moveEnemy(){
+            enemies.forEach(enemy=>{
+                currentEnemy = enemies.indexOf(enemy)
+                yAtt[currentEnemy] = Number(enemy.element.getAttribute('y'))
+                if(yAtt[currentEnemy] < stopPoint)
+                {
+                    yAtt[currentEnemy]+=enemy.speed
+                    enemy.element.setAttribute('y', yAtt[currentEnemy])
+                    enemy.element.style.top = yAtt[currentEnemy]+'px'
+                }
+                else
+                {
+                    enemy.element.classList.add('bouncy')
+                }
+            })
+        }
+        function collisionPlayerEnemy(bouncyboi){
+            enemies.forEach(enemy=>{
+                if(player.x > parseFloat(enemy.element.style.left))
+                {
+                    if(checkCollision(enemy.element, player.element))
+                    {
+                        player.x = parseFloat(enemy.element.style.left)+player.element.getBoundingClientRect().width
+                    }
+                    if(player.x > parseFloat(screen.style.width)-40)
+                    {
+                        bouncyEnemies[enemies.indexOf(enemy)].xSpeed=-3
+                    }
+                }
+                else 
+                if(checkCollision(player.element, enemy.element))
+                {
+                    player.x = parseFloat(enemy.element.style.left)-player.element.getBoundingClientRect().width                   
+                    if(player.x < 0)
+                    {
+                        bouncyEnemies[enemies.indexOf(enemy)].xSpeed=3
+                    }
+                }
+            })
+        }
+        //------------------------
+        const limitX = [0, screen.getBoundingClientRect().width - player.element.getBoundingClientRect().width]
+        const limitY = [0, screen.getBoundingClientRect().height - player.element.getBoundingClientRect().height]
+        function checkCollision(d1, d2){
+            const cD1 = d1.getBoundingClientRect()
+            const cD2 = d2.getBoundingClientRect()
+            return  !(cD1.right < cD2.left || 
+                    cD1.left > cD2.right || 
+                    cD1.bottom < cD2.top || 
+                    cD1.top > cD2.bottom)
+        }
+        function randomNumber(min, max) {
+            return Math.floor(Math.random() * (max - min + 1) + min);
+        }
+        //------------------------
+        function playerWallCollision(){
+            if(player.x < limitX[0]) player.x = limitX[0]
+            if(player.x > limitX[1]) player.x = limitX[1]
+            if(player.y < limitY[0]) player.y = limitY[0]
+            if(player.y > limitY[1]) player.y = limitY[1]
+        }
+        var angle, radians, offset, direction
+        function enemyShoot(){
+            enemies.forEach(enemy=>{
+                for (let b = 0; b < enemy.qtBullets; b++) {
+                    spawnEnemyBullet(enemy) 
+                }
+            })
+        }
+        var enemyBullets = []
+        var bulletsChunks = []
+        function chunkArray(chunk, array){
+            for (let b = 0; b < array.length; b+=chunk) {
+               bulletsChunks.push(array.splice(0, chunk))
+            }
+        }
+        function updateEnemyBullets(){
+            if(enemyBullets.length%10 == 0)
+            {
+                enemyBullets = Array.from(document.querySelectorAll('.enemyBullet'))
+            }
+            chunkArray(10, enemyBullets)
+        }
+        const angles = [
+            36, 72, 108, 144, 180, 216, 252, 288, 324, 360
+        ]
+        var angle
+        function moveEnemyBullet(){
+            bulletsChunks.forEach(bullets=>{
+                bullets.forEach((bullet, i) => {
+                    angle = angles[i]*(Math.PI/180)
+                    bullet.x = parseFloat(bullet.style.left) + 0.3 * Math.cos(angle)
+                    bullet.y = parseFloat(bullet.style.top) + 0.3    * Math.sin(angle)
+
+                    bullet.style.left = bullet.x+'px'
+                    bullet.style.top = bullet.y+'px'
+                })
+            })
+        }
+        function createGhost(){
+            const ghost = document.createElement('img')
+            ghost.setAttribute('id', 'ghost')
+            ghost.setAttribute('src', 'img/ghost.png')
+            screen.appendChild(ghost)
+            ghost.style.top = player.element.getBoundingClientRect().y+'px'
+            ghost.style.left = player.element.getBoundingClientRect().x+'px'
+            ghost.addEventListener('animationend',()=>{
+                ghost.remove()
+            })
+        }
+        function killPlayer(){
+            player.element.remove()
+            player.element = null
+            player.dead = true
+        }
+        function killEnemy(){
+            if(enemies.length != 0)
+            {
+                enemies.forEach(enemy=>{
+                    player.bullets.forEach(bullet=>{
+                        if(checkCollision(bullet.e, enemy.element))
+                        {
+                            enemy.element.classList.toggle('player-hit')
+                            enemy.element.addEventListener('animationend',()=>{
+                                enemy.element.classList.toggle('player-hit')
+                            })
+                            enemy.element.id-=player.damage
+
+                            //ENEMY DIEEEEE MWHAHAHHAHA
+                            if(enemy.element.id == 0) 
+                            {
+                                player.kills++
+                                for (let n = 0; n < 200; n++) {
+                                    player.score++
+                                    increasePower()
+                                }
+                                showNotif('+200!', 'yellow', '40px')
+                                enemy.element.classList.toggle('enemy-kill')
+                                enemy.element.addEventListener('animationend',()=>{
+                                    enemy.element.id = 0
+                                    enemy.element.classList.toggle('enemy-kill')
+                                    enemy.element.remove()
+                                })
+                            }
+                            if(enemy.element.id > 0)
+                            {
+                                for (let n = 0; n < 10; n++) {
+                                    player.score++
+                                    increasePower()
+                                }
+                                showNotif('+10!', 'white', '10px')  
+                            }
+                            bullet.e.remove()
+                        }
+                    })
+                })
+            }
+        }
+        function hitPlayer(){
+            document.querySelectorAll('.enemyBullet').forEach(bullet=>{
+                if(player.element!=null){
+                    if(checkCollision(player.element, bullet)){
+                        key['ArrowRight'] = false
+                        key['ArrowLeft'] = false
+                        player.hp-=1
+                        changeSprite(player.element, 'img/playerHit.png')
+                        
+                        player.element.classList.toggle('player-hit')
+                        document.getElementById('lives').classList.toggle('hit')
+
+                        player.element.addEventListener('animationend',()=>{
+                            player.element.classList.toggle('player-hit')
+                            document.getElementById('lives').classList.toggle('hit')
+                        })
+                        bullet.remove()
+                        //HE DIES
+                        if(player.hp <= 0){
+                            createGhost()
+                            killPlayer()
+                            setTimeout(gameOver,3100)
+                        }
+                        setTimeout(() => {
+                            changeSprite(player.element, 'img/player.png')
+                        }, 400);
+                        return true
+                    }
+                }
+            })
+        }
+        //setInterval(enemyShoot, 1)
+        var playerBullet
+        function shoot(){
+            player.shots++
+            playerBullet = document.createElement('div')
+            playerBullet.setAttribute('class','playerBullet')
+            playerBullet.style.bottom = player.y+'px'
+            playerBullet.style.left = player.x+15+'px'
+            player.bullets.push({
+                e: playerBullet, 
+                x: player.x, 
+                y: player.y, 
+                speed: 30
+            })
+            screen.appendChild(playerBullet)
+        }
+        function usePower(){
+            if(player.power == 5)
+            {
+                var powerFlashThing = document.createElement('div')
+                powerFlashThing.style.width = window.innerWidth/2+'px'
+                document.body.appendChild(powerFlashThing)
+                powerFlashThing.setAttribute('id','special')
+                powerFlashThing.addEventListener('animationend',()=>{
+                    powerFlashThing.remove()
+                })
+                bulletsChunks.forEach(bullet=>{
+                bullet.forEach(b=>{
+                    b.remove()
+                })
+                })
+                bulletsChunks=[]
+                enemyBullets.forEach(bullet=>{
+                    bullet.remove()
+                })
+                enemyBullets=[]
+                enemies.forEach(enemy=>{
+                    enemy.element.remove()
+                })
+                player.power = 0
+                power = '✩✩✩✩✩'
+            }
+        }
+        var power = '✩✩✩✩✩'
+        const fodase = document.getElementById('power')
+        function increasePower(){
+            if(player.power < 5)
+            {
+                if(player.score%500==0 && player.score != 0)
+                {
+                    fodase.parentElement.classList.add('power-border')
+                    fodase.parentElement.addEventListener('animationend',()=>{
+                        fodase.parentElement.classList.remove('power-border')
+                    })
+                    player.power++
+                    switch(player.power)
+                    {
+                        case 1:
+                            power = '★✩✩✩✩'
+                            break
+                        case 2:
+                            power = '★★✩✩✩'
+                            break
+                        case 3:
+                            power = '★★★✩✩'
+                            break
+                        case 4:
+                            power = '★★★★✩'
+                            break
+                        case 5:
+                            if(window.innerWidth > 900)
+                            {
+                                power = '★★★★★<br>(press X)'
+                            }
+                            else
+                            {
+                                power = '★★★★★<br>(touch on screen)'
+                            }
+                            break
+                    }
+                }
+            }
+        }
+        function playerBulletMove(){
+            player.bullets.forEach(playerBullet=>{
+                playerBullet.y+=playerBullet.speed
+                playerBullet.e.style.bottom = playerBullet.y+'px'
+                if(playerBullet.y > window.innerHeight)
+                {
+                    playerBullet.e.remove()
+                    player.bullets.splice(player.bullets.indexOf(playerBullet),1)
+                }
+            })
+        }
+        function move(){
+            if(player.element!=null)
+            {
+                player.element.style.left = player.x+'px'
+                player.element.style.bottom = player.y+'px'
+                if(key['ArrowUp']) player.y+=player.speed
+                if(key['ArrowDown']) player.y-=player.speed
+                if(key['ArrowRight']) {
+                    player.x+=player.speed
+                    changeSprite(player.element, 'img/playerRight.png')
+                }
+                if(key['ArrowLeft']) {
+                    player.x-=player.speed
+                    changeSprite(player.element, 'img/playerLeft.png')
+                }
+                if(key['KeyZ']){
+                    player.element.style.height = '50px'
+                    changeSprite(player.element, 'img/playerSmol.png')
+                }
+                else
+                {
+                    player.element.style.height = '80px'
+                }
+                if(key['KeyX']) usePower()
+            }
+        }
+        function setShoot()
+        { 
+            if(player.element!=null){
+                if(window.innerWidth > 900)
+                {
+                    if(key['Space']) shoot() 
+                }
+                else
+                {
+                    shoot()
+                }
+            }
+        }
+        // função pra caralho
+        function game(){
+            move()
+            moveEnemy()
+            moveBG()
+            moveBouncyEnemies()
+            updateEnemyBullets()
+            moveEnemyBullet()
+            playerBulletMove()
+            playerWallCollision()
+            hitPlayer()
+            killEnemy()
+            updateStatus()
+            update1ups()
+            take1up()
+            if(!player.dead) requestAnimationFrame(game)
+        }
+        setTimeout(()=>{
+            setInterval(()=>{
+            if(bulletsChunks.length > 100)
+            {
+                for (let i = 0; i < 100; i++) {
+                    bulletsChunks[i].forEach(bullet=>{
+                        bullet.classList.add('fade')
+                        bullet.addEventListener('animationend', ()=>{
+                            bullet.classList.remove('fade')
+                            bullet.remove()
+                        })
+                    })
+                }
+                enemyBullets.forEach(bullet=>{
+                    bullet.classList.add('fade')
+                        bullet.addEventListener('animationend', ()=>{
+                            bullet.classList.remove('fade')
+                            bullet.remove()
+                        })
+                })
+                bulletsChunks = []
+            }
+        },2000)
+        },1000)
+        setInterval(()=>{if(!player.dead) spawnEnemy()},1000)
+        setInterval(()=>{if(oneups.length < 3) spawn1up()},20000)
+        setInterval(()=>{if(!player.dead) enemyShoot()},2000)
+        setInterval(setShoot,100)
+        requestAnimationFrame(game)
+    </script>
+</body>
+</html>
